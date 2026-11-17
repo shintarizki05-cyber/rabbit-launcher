@@ -1,0 +1,57 @@
+name: Build Minecraft Launcher
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build for ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            os_name: windows
+            executable_extension: .exe
+            artifact_name: MinecraftLauncher-Windows
+          - os: ubuntu-latest
+            os_name: linux
+            executable_extension: ""
+            artifact_name: MinecraftLauncher-Linux
+          - os: macos-latest
+            os_name: macos
+            executable_extension: ""
+            artifact_name: MinecraftLauncher-macOS
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; else pip install minecraft-launcher-lib requests PyQt5; fi
+
+      - name: Build with PyInstaller
+        run: |
+          # Sesuaikan 'main.py' dengan nama file utama script Python launcher Anda
+          pyinstaller --noconsole --onefile --name "MinecraftLauncher-${{ matrix.os_name }}" main.py
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: dist/MinecraftLauncher-*${{ matrix.executable_extension }}
+          
